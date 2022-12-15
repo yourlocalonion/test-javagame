@@ -1,52 +1,69 @@
 package net.onionlocal.main;
 
+import net.onionlocal.entity.Player;
+
 import javax.swing.*;
 import java.awt.*;
 
-import static net.onionlocal.main.LogUtil.logUtil;
+import static net.onionlocal.main.LogUtil.*;
 
 public class GamePanel extends JPanel implements Runnable {
+
+    // window variables
     static final int ORIGTILESIZE = 16;
     static final int SCALE = 3;
-    static final int TILESIZE = ORIGTILESIZE * SCALE; // 48x48 tile
+    public static final int TILESIZE = ORIGTILESIZE * SCALE; // 48x48 tile
     static final int MAXSCREENCOL = 16;
     static final int MAXSCREENROW = 12;
     static final int SCREENWIDTH = TILESIZE * MAXSCREENCOL;
     static final int SCREENHEIGHT = TILESIZE * MAXSCREENROW;
 
-    int playerX = 100;
-    int playerY = 100;
-    int playerSpeed = 4;
+    //normal (player, delta etc) variables
     int fps = 60;
-
     double drawInterval = 1000000000/fps;
-    double deltaTime = 0;
+    public double deltaTime = 0;
     long last = System.nanoTime();
     long current;
+
+    //objects
     KeyHandler keyH = new KeyHandler();
+    Player player = new Player(this, keyH);
     Thread gameThread;
 
+
+    /**
+     * initializes the window
+     */
     public GamePanel() {
         this.setPreferredSize(new Dimension(SCREENWIDTH, SCREENHEIGHT));
         this.setBackground(Color.black);
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
         this.setFocusable(true);
-        this.requestFocusInWindow();
     }
 
-    public void startGameThread() {
+    /**
+     * starts the game thread (loop basically idk)
+     */
+    public boolean startGameThread() {
         gameThread = new Thread(this);
 
         if (gameThread != null) {
-            logUtil(LogUtil.LogPriority.INFO, String.format(" [%s]: Created Game Thread!", System.getProperty("java.class.path")));
+            logUtil(LogUtil.LogPriority.INFO, String.format(" [%s]: Created Game Thread!", this.getClass().getSimpleName()));
+        } else {
+            logUtil(LogUtil.LogPriority.ERROR, String.format(" [%s]: Cannot create thread!", this.getClass().getSimpleName()));
+            return false;
         }
 
         gameThread.start();
 
         if (gameThread.isAlive()) {
-            logUtil(LogUtil.LogPriority.INFO, String.format(" [%s]: Game Thread Started!", System.getProperty("java.class.path")));
+            logUtil(LogUtil.LogPriority.INFO, String.format(" [%s]: Game Thread Started!", this.getClass().getSimpleName()));
+        } else {
+            logUtil(LogUtil.LogPriority.ERROR, String.format(" [%s]: Game thread cannot start!", this.getClass().getSimpleName()));
+            return false;
         }
+        return true;
     }
 
 
@@ -67,15 +84,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
     public void update() {
-        if (keyH.upPressed) {
-            playerY -= playerSpeed * deltaTime;
-        } else if (keyH.downPressed) {
-            playerY += playerSpeed * deltaTime;
-        } else if (keyH.leftPressed) {
-            playerX -= playerSpeed * deltaTime;
-        } else if (keyH.rightPressed) {
-            playerX += playerSpeed * deltaTime;
-        }
+        player.update();
     }
 
     @Override
@@ -83,9 +92,8 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(graphics);
 
         Graphics2D graphics2D = (Graphics2D)graphics;
+        player.draw(graphics2D);
 
-        graphics2D.setColor(Color.white);
-        graphics2D.fillRect(playerX, playerY, TILESIZE, TILESIZE);
         graphics2D.dispose();
     }
 }
